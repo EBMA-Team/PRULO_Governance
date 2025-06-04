@@ -261,6 +261,8 @@ STROBEInput <- openxlsx2::wb_to_df(
 
 # Context
 
+PRULO (Patient Registry of Upper Limb Outcomes) is a clinical quality registry supporting the practices of two surgeons in Geelong, Victoria. It has been in operation since June 2020 and has three designed cohorts - Rotator Cuff; Glenohumeral Instability and a General cohort for all other shoulder pathology.
+
 # Recruitment Flow by Region
 
 Flowcharts as per STROBE [@Vandenbroucke2007] and RECORD [@Benchimol2015] guidelines were generated for treatments enrolled into the Registry. Followup was set to eligibility at 12months.
@@ -360,7 +362,6 @@ STROBEPlot1 <- consort_plot(
 knitr::knit_print(STROBEPlot1)
 
 ```
-
 
 Cumulative recruitment over time was plotted from Registry inception to the present.
 
@@ -499,7 +500,6 @@ gg_miss_fct(PROMQDASH |> dplyr::filter(
 
 ```
 
-
 ```{r}
 #| label: fig-rotatorcuff-miss
 #| fig-cap: "Missingness of WORC Normalised by Timepoint in the Rotator Cuff cohort"
@@ -601,8 +601,6 @@ gg_miss_fct(PROMGHI |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr:
   )
 ```
 
-
-
 The cumulative results of the Registry illustrate difficulty in engaging patients beyond short term followup.
 
 ## Baseline by Year
@@ -687,7 +685,6 @@ FigureEQ5D <- Snapshot |> dplyr::filter(SurgicalTreatment2 == "Surgical") |>
 knitr::knit_print(FigureEQ5D)
 
 ```
-
 
 Between-cohort variability is observed for the Physical Component Score of the VR12, but not as pronounced for the Mental Component Score. Most notable is the high variation within all cohorts for both VR12 component scores.
 
@@ -893,7 +890,6 @@ TableRCdemo <- gtsummary::tbl_summary(
 knitr::knit_print(TableRCdemo)
 ```
 
-
 ```{r}
 #| label: tbl-rc-intraop
 #| tbl-cap: "Summary of intraoperative variables in Rotator Cuff cohort"
@@ -914,7 +910,6 @@ knitr::knit_print(TableRCsurg)
 
 
 ```
-
 
 ```{r}
 #| label: fig-worc-rc
@@ -969,7 +964,6 @@ FigureWORC_overlay <- PROMKA2 |> dplyr::filter(
 
 knitr::knit_print(FigureWORC_overlay)
 ```
-
 
 ```{r}
 #| label: fig-worcq3-rc
@@ -1071,7 +1065,6 @@ knitr::knit_print(TableGHIsurg)
 
 ```
 
-
 ```{r}
 
 GHIIntraop <- Snapshot |> filter(
@@ -1082,7 +1075,6 @@ GHIIntraop <- Snapshot |> filter(
 )
 
 ```
-
 
 ```{r}
 #| label: fig-wosi-ghi
@@ -1136,8 +1128,6 @@ knitr::knit_print(FigureWOSI)
 ```
 
 Overall, the *Glenohumeral Instability* cohort mean WOSI score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
-
-
 
 # Interpretation
 

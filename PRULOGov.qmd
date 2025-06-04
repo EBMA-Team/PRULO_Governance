@@ -31,7 +31,8 @@ The following analysis is a report on the activity, quality and data contained i
 
 Analysis packages were loaded initially into the *R* environment.
 
-```{r, load-pkgs}
+```{r}
+#| label: load-packages
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(# Load required packages
@@ -95,7 +96,6 @@ googledrive::drive_auth(
 A function was generated to retrieve files using the *googledrive* package, to call on later in the analysis for processing data imports.
 
 ```{r}
-
 #| label: folder
 #| echo: false
 
@@ -339,7 +339,7 @@ STROBEFlow3 <- STROBEFlow2 |> dplyr::mutate(
 
 STROBEPlot1 <- consort_plot(
   data = STROBEFlow3 |> dplyr::filter(
-    arm3 == "KneeArthritis" | arm3 == "ReinterventionArthroplasty" | arm3 == "KneeGeneral"
+    arm3 == "RotatorCuff" | arm3 == "GlenohumeralInstability" | arm3 == "ShoulderGeneral"
   ),
  orders = c(
    trialno = "Population",
@@ -361,34 +361,6 @@ knitr::knit_print(STROBEPlot1)
 
 ```
 
-```{r}
-#| label: fig-strobe-cohort2
-#| fig-cap: "Flowchart of extraction and followup of surgical sample from the Registry - 2"
-
-
-STROBEPlot2 <- consort_plot(
-  data = STROBEFlow3 |> dplyr::filter(
-    arm3 == "TFInstability" | arm3 == "KneeDeformity"
-  ),
- orders = c(
-   trialno = "Population",
-   exclusion1 = "Ineligible",
-   trialno = "Baseline Analysis",
-   arm3 = "Cohort",
-   lost_followup = "Excluded",
-   mitt = "Followup Analysis"
-   ),
- side_box = c(
-   "exclusion1",
-   "lost_followup"
-   ),
- allocation = "arm3",
- cex = 0.6
-)
-
-knitr::knit_print(STROBEPlot2)
-
-```
 
 Cumulative recruitment over time was plotted from Registry inception to the present.
 
@@ -446,10 +418,11 @@ knitr::knit_print(cumulative_plot)
 #| fig-cap: "Missingness of baseline PROMs and intraoperative date by registry cohort"
 
 gg_miss_fct(Snapshot |> dplyr::filter(
-      EligibleAtPreop == "Yes" | EligibleAtIntraop == "Yes"
+      EligibleAtPreop == "Yes" | EligibleAtIntraop == "Yes",
+      SurgicalTreatment2 == "Surgical"
       ) |> dplyr::select(
-        VR12_Physical_TotalScore_Preop,
-        Procedure,
+        EQ5D5L_IndexScore_Preop,
+        PatientPosition,
         #TreatmentProvider, 
         RegistryCohortName
         ), 
@@ -459,7 +432,7 @@ gg_miss_fct(Snapshot |> dplyr::filter(
 
 ```
 
-Missingness for baseline PROMs (represented by VR12) and intraoperative data is captured in @fig-baseline-miss. Intraoperative data was captured slightly differently between cohorts in the previous system, so multiple fields have been utilised to illustrate intraoperative capture across cohorts.
+Missingness for baseline PROMs (represented by EQ5D) and intraoperative data is captured in @fig-baseline-miss. Intraoperative data was captured slightly differently between cohorts, so multiple fields have been utilised to illustrate intraoperative capture across cohorts.
 
 Overall, there are variable response rates for baseline scores across cohorts. This may reflect variable engagement during consultant clinics. We have also identified a system issue that is impeding scores from being sent to patients that are being re-categorised from one cohort to another. This is predominantly affecting cases that have limited information on their referral and are subsequently moved from the *General* cohort.
 
@@ -471,16 +444,18 @@ max_percent <- 100  # Or another value that encompasses all your data
 ```
 
 ```{r}
-#| label: fig-sane-miss
+#| label: fig-qdash-miss
 #| fig-cap: "Missingness of SANE by Timepoint across all cohorts"
 
-PROMSANE <- Snapshot |> dplyr::select(
+PROMQDASH <- Snapshot |> dplyr::select(
   TreatmentID,
-  starts_with("SANE"),
+  starts_with("QDASH"),
   starts_with("EligibleAt"),
   -EligibleAtIntraop
 ) |> rename_with(
   ~gsub("Atx","At_",.x, fixed = TRUE)
+) |> rename_with(
+  ~gsub("QDASH_TotalScore","QDASHTotalScore",.x, fixed = TRUE)
 ) |> dplyr::rename(
   EligibleAt_Preop = "EligibleAtPreop"
   ) |> pivot_longer(
@@ -502,11 +477,11 @@ PROMSANE <- Snapshot |> dplyr::select(
   by = "TreatmentID"
 )
 
-gg_miss_fct(PROMSANE |> dplyr::filter(
+gg_miss_fct(PROMQDASH |> dplyr::filter(
       !is.na(EligibleAt),
       SurgicalTreatment2 == "Surgical"
       ) |> dplyr::select(
-        SANE,
+        QDASHTotalScore,
         TimePoint
         ), 
       TimePoint
@@ -521,39 +496,25 @@ gg_miss_fct(PROMSANE |> dplyr::filter(
 
 ```
 
-```{r}
-#| label: fig-sane2-miss
-#| fig-cap: "Missingness of SANE for surgical cases by Timepoint across all cohorts"
-
-gg_miss_fct(PROMSANE |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr::select(contains("SANE"), TimePoint), TimePoint) +
-  scale_fill_gradient(
-    low = "steelblue",     # Color for low missingness values
-    high = "darkred",      # Color for high missingness values
-    limits = c(min_percent, max_percent),    # Consistent scale limits
-    name = "% Missing"     # Legend title
-  ) 
-
-
-```
 
 ```{r}
-#| label: fig-kneearthritis-miss
-#| fig-cap: "Missingness of KOOS JR by Timepoint in the Knee Arthritis cohort"
+#| label: fig-rotatorcuff-miss
+#| fig-cap: "Missingness of WORC Normalised by Timepoint in the Rotator Cuff cohort"
 
-SnapshotKA <- Snapshot |> dplyr::filter(
-  RegistryCohortName == "KneeArthritis"
+SnapshotRC <- Snapshot |> dplyr::filter(
+  RegistryCohortName == "RotatorCuff"
   ) |> rename_with(
   ~gsub("Atx","At_",.x, fixed = TRUE)
 ) |> rename_with(
-  ~gsub("KOOSJR_TotalScore","KOOSJRTotalScore",.x, fixed = TRUE)
+  ~gsub("WORC_Norm","WORCNorm",.x, fixed = TRUE)
 ) |> rename(
   EligibleAt_Preop = "EligibleAtPreop"
 )
 
-PROMKA <- SnapshotKA |> dplyr::select(
+PROMRC <- SnapshotRC |> dplyr::select(
   TreatmentID,
-  starts_with("KOOSJR"),
-  #starts_with("Tegner"),
+  starts_with("WORCNorm"),
+  starts_with("WORCPhysicalQ3"),
   starts_with("EligibleAt"),
   -EligibleAtIntraop
 ) |> pivot_longer(
@@ -562,12 +523,12 @@ PROMKA <- SnapshotKA |> dplyr::select(
   names_sep = "_",
   values_drop_na = TRUE
 ) |> mutate(
-  TimePoint = factor(TimePoint, levels = c("Preop","3months","12months","24months","60months"), ordered = TRUE, exclude = NA),
+  TimePoint = factor(TimePoint, levels = c("Preop","6months","12months","24months","60months"), ordered = TRUE, exclude = NA),
 ) |> dplyr::filter(
   EligibleAt == "Yes",
   !is.na(TimePoint)
 ) |> left_join(
-  SnapshotKA |> dplyr::select(
+  SnapshotRC |> dplyr::select(
     TreatmentID,
     SurgicalTreatment2
   ),
@@ -576,7 +537,7 @@ PROMKA <- SnapshotKA |> dplyr::select(
 
 
 
-gg_miss_fct(PROMKA |> dplyr::select(contains("Score"), TimePoint), TimePoint) +
+gg_miss_fct(PROMRC |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr::select(WORCNorm,TimePoint), TimePoint) +
   scale_fill_gradient(
     low = "steelblue",     # Color for low missingness values
     high = "darkred",      # Color for high missingness values
@@ -586,23 +547,23 @@ gg_miss_fct(PROMKA |> dplyr::select(contains("Score"), TimePoint), TimePoint) +
 ```
 
 ```{r}
-#| label: fig-tfi-miss
-#| fig-cap: "Missingness of IKDC2000 Score by Timepoint in the Tibiofemoral Instability cohort"
+#| label: fig-ghi-miss
+#| fig-cap: "Missingness of WOSI Normalised by Timepoint in the Glenohumeral Instability cohort"
 
 
-SnapshotTFI <- Snapshot |> dplyr::filter(
-  RegistryCohortName == "TFInstability"
+SnapshotGHI <- Snapshot |> dplyr::filter(
+  RegistryCohortName == "GlenohumeralInstability"
 ) |> rename_with(
   ~gsub("Atx","At_",.x, fixed = TRUE)
 ) |> rename_with(
-  ~gsub("IKDC_TotalScore","IKDCTotalScore",.x, fixed = TRUE)
+  ~gsub("WOSI_Norm","WOSINorm",.x, fixed = TRUE)
 ) |> rename(
   EligibleAt_Preop = "EligibleAtPreop"
 )
 
-PROMTFI <- SnapshotTFI |> dplyr::select(
+PROMGHI <- SnapshotGHI |> dplyr::select(
   TreatmentID,
-  starts_with("IKDC"),
+  starts_with("WOSINorm"),
   starts_with("EligibleAt"),
   -EligibleAtIntraop
 ) |> pivot_longer(
@@ -612,21 +573,12 @@ PROMTFI <- SnapshotTFI |> dplyr::select(
   values_drop_na = TRUE
 ) |> mutate(
   TimePoint = factor(TimePoint, levels = c("Preop","3months","6months","12months","24months"), ordered = TRUE, exclude = NA),
-  IKDCTotalScore = as.numeric(IKDCTotalScore),
-  IKDCSymptomQ7 = forcats::fct(
-    IKDCSymptomQ7,
-    levels = c(
-    "Very strenuous activities like jumping or pivoting as in basketball or soccer",
-    "Strenuous activities like heavy physical work, skiing or tennis",
-    "Moderate activities like moderate physical work, running or jogging",
-    "Light activities like walking, housework or yard work",
-    "Unable to perform any of the above activities due to giving way of the knee"
-  ))
+  WOSINorm = as.numeric(WOSINorm)
 ) |> dplyr::filter(
   EligibleAt == "Yes",
   !is.na(TimePoint)
 ) |> left_join(
-  SnapshotTFI |> dplyr::select(
+  SnapshotGHI |> dplyr::select(
     TreatmentID,
     SurgicalTreatment2,
     TreatmentType,
@@ -637,7 +589,7 @@ PROMTFI <- SnapshotTFI |> dplyr::select(
 
 
 
-gg_miss_fct(PROMTFI |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr::select(contains("Score"), TimePoint), TimePoint) +
+gg_miss_fct(PROMGHI |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr::select(contains("Norm"), TimePoint), TimePoint) +
   scale_fill_gradient(
     low = "steelblue",     # Color for low missingness values
     high = "darkred",      # Color for high missingness values
@@ -646,63 +598,18 @@ gg_miss_fct(PROMTFI |> dplyr::filter(SurgicalTreatment2 == "Surgical") |> dplyr:
   )
 ```
 
-```{r}
-MarxQ <- Snapshot |> dplyr::filter(
-  RegistryCohortName == "TFInstability"
-) |> dplyr::select(
-  starts_with("MARXQ")
-)
 
-ACLRSI <- Snapshot |> dplyr::filter(
-  RegistryCohortName == "TFInstability"
-) |> dplyr::select(
-  TreatmentID,
-  starts_with("ACLRSI"),
-  starts_with("EligibleAt")
-)  |> rename_with(
-  ~gsub("Atx","At_",.x, fixed = TRUE)
-) |> rename_with(
-  ~gsub("ACLRSISF_TotalScore","ACLRSISFTotalScore",.x, fixed = TRUE)
-) |> rename(
-  EligibleAt_Preop = "EligibleAtPreop"
-)
-
-
-ACLRSI1 <-  ACLRSI |> dplyr::select(
-  TreatmentID,
-  starts_with("ACLRSISFTotalScore"),
-  EligibleAt_6months,
-  EligibleAt_12months
-) |> pivot_longer(
-  cols = !TreatmentID,
-  names_to = c(".value","TimePoint"),
-  names_sep = "_",
-  values_drop_na = TRUE
-) |> mutate(
-  TimePoint = factor(TimePoint, levels = c("6months","12months"), ordered = TRUE, exclude = NA),
-  ACLRSISFTotalScore = as.numeric(ACLRSISFTotalScore)
-) |> dplyr::filter(
-  EligibleAt == "Yes",
-  !is.na(TimePoint)
-) |> left_join(
-  SnapshotTFI |> dplyr::select(
-    TreatmentID,
-    SurgicalTreatment2
-  ),
-  by = "TreatmentID"
-)
-```
 
 The cumulative results of the Registry illustrate difficulty in engaging patients beyond short term followup.
 
 ## Baseline by Year
 
 ```{r}
-#| label: fig-ka-missbase
+#| label: fig-rc-missbase
 #| fig-cap: "Missingness of Baseline Oxford Knee Score by Year in the Knee Arthritis cohort"
 
 
-PROMKA1 <- PROMKA |> left_join(
+PROMRC1 <- PROMRC |> left_join(
   STROBEFlow3 |> dplyr::select(
     trialno,
     DateTreatmentRecordCreation
@@ -712,10 +619,10 @@ PROMKA1 <- PROMKA |> left_join(
   TimePoint == "Preop"
   ) |> dplyr::select(
   CreationYear,
-  KOOSJRTotalScore
+  WORCNorm
 )
 
-gg_miss_fct(PROMKA1, CreationYear) +
+gg_miss_fct(PROMRC1, CreationYear) +
   scale_fill_gradient(
     low = "steelblue",     # Color for low missingness values
     high = "darkred",      # Color for high missingness values
@@ -726,11 +633,11 @@ gg_miss_fct(PROMKA1, CreationYear) +
 ```
 
 ```{r}
-#| label: fig-tfi-missbase
+#| label: fig-ghi-missbase
 #| fig-cap: "Missingness of Baseline IKDC2000 by Year in the Tibiofemoral Instability cohort"
 
 
-PROMTFI1 <- PROMTFI |> left_join(
+PROMGHI1 <- PROMGHI |> left_join(
   STROBEFlow3 |> dplyr::select(
     trialno,
     DateTreatmentRecordCreation
@@ -741,10 +648,10 @@ PROMTFI1 <- PROMTFI |> left_join(
   !(CreationYear < 2017)
   ) |> dplyr::select(
   CreationYear,
-  IKDCTotalScore
+  WOSITotalScore
 ) 
 
-gg_miss_fct(PROMTFI1, CreationYear) +
+gg_miss_fct(PROMGHI1, CreationYear) +
   scale_fill_gradient(
     low = "steelblue",     # Color for low missingness values
     high = "darkred",      # Color for high missingness values
@@ -754,65 +661,64 @@ gg_miss_fct(PROMTFI1, CreationYear) +
 
 ```
 
-The results displayed in @fig-tfi-missbase helped to identify the system issue preventing cohort-specific scores being resent to cases that were transferred from one cohort to another. This has now been rectified and eligible cases have been resent links to complete the required questionnaires.
+The results displayed in @fig-ghi-missbase helped to identify the system issue preventing cohort-specific scores being resent to cases that were transferred from one cohort to another. This has now been rectified and eligible cases have been resent links to complete the required questionnaires.
 
 # Cohort Analysis
 
-The VR12 is a *general* health questionnaire that is presented to *all* patients enrolled in the registry.
+The EQ5D is a *general* health questionnaire that is presented to *all* patients enrolled in the registry.
 
 ```{r}
-#| label: fig-vr12pcs-cohort
-#| fig-cap: "Summary of VR12-PCS at baseline by cohort"
+#| label: fig-eq5d-cohort
+#| fig-cap: "Summary of EQ5D Index at baseline by cohort"
 
 Snapshot <- dplyr::mutate(
   Snapshot,
   across(contains("Score"), ~as.numeric(.))
 )
 
-FigureVR12PCS <- Snapshot |> dplyr::filter(SurgicalTreatment2 == "Surgical") |>
-  ggplot(aes(y = RegistryCohortName, x = VR12_Physical_TotalScore_Preop)) +
+FigureEQ5D <- Snapshot |> dplyr::filter(SurgicalTreatment2 == "Surgical") |>
+  ggplot(aes(y = RegistryCohortName, x = EQ5D5L_IndexScore_Preop)) +
   stat_halfeye()
 
 
-knitr::knit_print(FigureVR12PCS)
+knitr::knit_print(FigureEQ5D)
 
 ```
 
-```{r}
-#| label: fig-vr12mcs-cohort
-#| fig-cap: "Summary of VR12-MCS at baseline by cohort"
-
-FigureVR12MCS <- Snapshot |> dplyr::filter(RegistryCohortName != "KneeDeformity") |>
-  ggplot(aes(y = RegistryCohortName, x = VR12_Mental_TotalScore_Preop)) +
-  stat_halfeye()
-
-
-knitr::knit_print(FigureVR12MCS)
-```
 
 Between-cohort variability is observed for the Physical Component Score of the VR12, but not as pronounced for the Mental Component Score. Most notable is the high variation within all cohorts for both VR12 component scores.
 
 ```{r}
-#| label: fig-sane
-#| fig-cap: "Summary of SANE by Timepoint"
+#| label: fig-qdash
+#| fig-cap: "Summary of Quick DASH by Timepoint"
 
-preop_position <- which(levels(PROMSANE$TimePoint) == "Preop")
+preop_position <- which(levels(PROMQDASH$TimePoint) == "Preop")
 
-FigureSANE <- PROMSANE |> dplyr::filter(
+FigureQDASH <- PROMQDASH |> dplyr::filter(
   !(is.na(SurgicalTreatment2)),
-  !is.na(SANE)
-) |> ggplot(aes(y = SANE, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
+  !is.na(QDASHTotalScore)
+) |> ggplot(aes(y = QDASHTotalScore, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
   stat_halfeye(
     alpha = 0.5,  # Transparency for overlap visibility
     position = "identity",  # Overlay the distributions
     na.rm = TRUE,
     scale = 0.9  # Slightly scale down to avoid too much overlap
   ) +
-  # Add appropriate scale colors
-  scale_fill_manual(values = c("Surgical" = "steelblue", "Non-Surgical" = "darkgray", "Surgery recommended" = "darkred")) +
-  scale_color_manual(values = c("Surgical" = "steelblue4", "Non-Surgical" = "dimgray","Surgery recommended" = "darkred")) +
+  # Add appropriate scale colors "Surgery recommended" = "darkred"
+  scale_fill_manual(values = c(
+    "Surgical" = "steelblue", 
+    "Non-Surgical" = "darkgray",
+    "Surgery recommended" = "darkred"
+    )
+    ) +
+  scale_color_manual(values = c(
+    "Surgical" = "steelblue4", 
+    "Non-Surgical" = "dimgray",
+    "Surgery recommended" = "darkred"
+    )
+    ) +
   labs(
-    y = "SANE",
+    y = "QDASHTotalScore",
     x = "Time Point",
     fill = "Treatment",
     color = "Treatment"
@@ -825,15 +731,13 @@ FigureSANE <- PROMSANE |> dplyr::filter(
     ~RegistryCohortName, ncol = 2
   )
 
-knitr::knit_print(FigureSANE)
+knitr::knit_print(FigureQDASH)
 ```
 
 ```{r}
 
 
-PROMMODEM <-  Snapshot |> dplyr::filter(
-  !(RegistryCohortName == "KneeGeneral")
-) |> rename_with(
+PROMMODEM <-  Snapshot |> rename_with(
   ~gsub("Atx","At_",.x, fixed = TRUE)
 ) |> rename(
   EligibleAt_Preop = "EligibleAtPreop"
@@ -957,15 +861,15 @@ FigModemP3 <- ggplot(PROMMODEM1 |> dplyr::filter(!is.na(MODEMPQ3), SurgicalTreat
 knitr::knit_print(FigModemP3)
 ```
 
-## Knee Arthritis
+## Rotator Cuff
 
 ```{r}
-#| label: tbl-ka-demographics
-#| tbl-cap: "Summary of demographics in Knee Arthritis cohort"
+#| label: tbl-rc-demographics
+#| tbl-cap: "Summary of demographics in Rotator Cuff cohort"
 
-TableKAdemo <- gtsummary::tbl_summary(
+TableRCdemo <- gtsummary::tbl_summary(
   Snapshot |> dplyr::filter(
-    RegistryCohortName == "KneeArthritis"
+    RegistryCohortName == "RotatorCuff"
   ) |> dplyr::select(
     TreatmentType,
     SurgicalTreatment2,
@@ -974,7 +878,7 @@ TableKAdemo <- gtsummary::tbl_summary(
     AgeAtInitialExam,
     Sex,
     EducationLevel_Preop,
-    DiagnosisCoded
+    DiagnosisPrimary
   ),
   by = "SurgicalTreatment2",
   missing = "no",
@@ -983,23 +887,46 @@ TableKAdemo <- gtsummary::tbl_summary(
   )
 )
 
-knitr::knit_print(TableKAdemo)
+knitr::knit_print(TableRCdemo)
 ```
 
-```{r}
-#| label: fig-koosjr-ka
-#| fig-cap: "Summary of KOOSJR by Timepoint"
 
-preop_position <- which(levels(PROMKA$TimePoint) == "Preop")
+```{r}
+#| label: tbl-rc-intraop
+#| tbl-cap: "Summary of intraoperative variables in Rotator Cuff cohort"
+
+TableRCsurg <- gtsummary::tbl_summary(
+  Snapshot |> dplyr::filter(
+    RegistryCohortName == "RotatorCuff",
+    SurgicalTreatment2 == "Surgical"
+  ) |> dplyr::select(
+    CuffStatus:CuffRepair
+  ) |> mutate(
+    across(contains("TearSize"), ~as.numeric(.))
+  ),
+  missing = "no"
+)
+
+knitr::knit_print(TableRCsurg)
+
+
+```
+
+
+```{r}
+#| label: fig-worc-rc
+#| fig-cap: "Summary of WORC normalised by Timepoint"
+
+preop_position <- which(levels(PROMRC$TimePoint) == "Preop")
 
 
 PROMKA2 <- dplyr::mutate(
-  PROMKA,
-  across(contains("Score"), ~as.numeric(.))
+  PROMRC,
+  across(contains("Norm"), ~as.numeric(.))
 )
-FigureKOOSJR_overlay <- PROMKA2 |> dplyr::filter(
+FigureWORC_overlay <- PROMKA2 |> dplyr::filter(
   !(is.na(SurgicalTreatment2))
-) |> ggplot(aes(y = KOOSJRTotalScore, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
+) |> ggplot(aes(y = WORCNorm, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
   stat_halfeye(
     alpha = 0.5,  # Transparency for overlap visibility
     position = "identity",  # Overlay the distributions
@@ -1026,7 +953,7 @@ FigureKOOSJR_overlay <- PROMKA2 |> dplyr::filter(
   scale_fill_manual(values = c("Surgical" = "steelblue", "Non-Surgical" = "darkgray", "Surgery recommended" = "darkred")) +
   scale_color_manual(values = c("Surgical" = "steelblue4", "Non-Surgical" = "dimgray", "Surgery recommended" = "darkred")) +
   labs(
-    y = "KOOSJR Total Score",
+    y = "WORC Normalised",
     x = "Time Point",
     fill = "Treatment",
     color = "Treatment"
@@ -1037,39 +964,68 @@ FigureKOOSJR_overlay <- PROMKA2 |> dplyr::filter(
     panel.grid.minor = element_blank()
   )
 
-knitr::knit_print(FigureKOOSJR_overlay)
+knitr::knit_print(FigureWORC_overlay)
 ```
 
+
 ```{r}
-#| label: tbl-ka-intraop
-#| tbl-cap: "Summary of intraoperative variables in Knee Arthritis cohort"
+#| label: fig-worcq3-rc
+#| fig-cap: "Summary of WORC Physical Q3 (weakness) by Timepoint"
 
-TableKAsurg <- gtsummary::tbl_summary(
-  Snapshot |> dplyr::filter(
-    RegistryCohortName == "KneeArthritis",
-    SurgicalTreatment2 == "Surgical"
-  ) |> dplyr::select(
-    Facility:AdjunctProcedures
-  ),
-  missing = "no"
-)
+FigureWORCQ3_overlay <- PROMRC |> dplyr::filter(
+  !(is.na(SurgicalTreatment2))
+) |> ggplot(aes(y = WORCPhysicalQ3, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
+  stat_halfeye(
+    alpha = 0.5,  # Transparency for overlap visibility
+    position = "identity",  # Overlay the distributions
+    na.rm = TRUE,
+    scale = 0.9  # Slightly scale down to avoid too much overlap
+  ) +
+  # Add the ellipse annotation
+  # ggforce::geom_ellipse(aes(x0 = preop_position, 
+  #                 y0 = 70, 
+  #                 a = 0.3, 
+  #                 b = 5, 
+  #                 angle = 0),
+  #            color = "red", 
+  #            size = 1.2,
+  #            inherit.aes = FALSE) +
+  # annotate("text", 
+  #          x = preop_position + 0.4, 
+  #          y = 85,
+  #          label = "High preop scores",
+  #          color = "red",
+  #          fontface = "bold",
+  #          size = 3.5) +
+  # Add appropriate scale colors
+  scale_fill_manual(values = c("Surgical" = "steelblue", "Non-Surgical" = "darkgray", "Surgery recommended" = "darkred")) +
+  scale_color_manual(values = c("Surgical" = "steelblue4", "Non-Surgical" = "dimgray", "Surgery recommended" = "darkred")) +
+  labs(
+    y = "WORC Normalised",
+    x = "Time Point",
+    fill = "Treatment",
+    color = "Treatment"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    panel.grid.minor = element_blank()
+  )
 
-knitr::knit_print(TableKAsurg)
-
-
+knitr::knit_print(FigureWORCQ3_overlay)
 ```
 
-Assessment of the *KneeArthritis* cohort reveals that some patients enrolled in the cohort are scoring high on the KOOS JR preoperatively, intraoperative data requires backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. patellar resurfacing, tourniquet use, soft tissue management).
+Assessment of the *Rotator Cuff* cohort reveals that some patients enrolled in the cohort are scoring high on the KOOS JR preoperatively, intraoperative data requires backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. patellar resurfacing, tourniquet use, soft tissue management).
 
-## Tibiofemoral Instability
+## Glenohumeral Instability
 
 ```{r}
-#| label: tbl-tfi-demographics
+#| label: tbl-ghi-demographics
 #| tbl-cap: "Summary of demographics in Tibiofemoral Instability cohort"
 
-TableTFIdemo <- gtsummary::tbl_summary(
+TableGHIdemo <- gtsummary::tbl_summary(
   Snapshot |> dplyr::filter(
-    RegistryCohortName == "TFInstability"
+    RegistryCohortName == "GlenohumeralInstability"
   ) |> dplyr::select(
     TreatmentType,
     SurgicalTreatment2,
@@ -1078,7 +1034,7 @@ TableTFIdemo <- gtsummary::tbl_summary(
     AgeAtInitialExam,
     Sex,
     EducationLevel_Preop,
-    DiagnosisCoded
+    DiagnosisPrimary
   ),
   by = "SurgicalTreatment2",
   missing = "no",
@@ -1087,19 +1043,40 @@ TableTFIdemo <- gtsummary::tbl_summary(
   )
 )
 
-knitr::knit_print(TableTFIdemo)
+knitr::knit_print(TableGHIdemo)
 ```
 
 ```{r}
-#| label: fig-ikdc-tfi
-#| fig-cap: "Summary of IKDC2000 by Timepoint for primary presentations"
+#| label: tbl-ghi-intraop
+#| tbl-cap: "Summary of intraoperative variables in Rotator Cuff cohort"
 
-preop_position <- which(levels(PROMTFI$TimePoint) == "Preop")
+TableGHIsurg <- gtsummary::tbl_summary(
+  Snapshot |> dplyr::filter(
+    RegistryCohortName == "RotatorCuff",
+    SurgicalTreatment2 == "Surgical"
+  ) |> dplyr::select(
+    LabralTear:RepairAugmentation
+  ) |> mutate(
+    across(contains("TearSize"), ~as.numeric(.))
+  ),
+  missing = "no"
+)
 
-FigureIKDC <- PROMTFI |> dplyr::filter(
+knitr::knit_print(TableGHIsurg)
+
+
+```
+
+```{r}
+#| label: fig-wosi-ghi
+#| fig-cap: "Summary of WOSI normalised by Timepoint for primary presentations of Glenohumeral Instability"
+
+preop_position <- which(levels(PROMGHI$TimePoint) == "Preop")
+
+FigureWOSI <- PROMGHI |> dplyr::filter(
   !(is.na(SurgicalTreatment2)),
   TreatmentType == "Primary"
-) |> ggplot(aes(y = IKDCTotalScore, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
+) |> ggplot(aes(y = WOSINorm, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
   stat_halfeye(
     alpha = 0.5,  # Transparency for overlap visibility
     position = "identity",  # Overlay the distributions
@@ -1125,7 +1102,7 @@ FigureIKDC <- PROMTFI |> dplyr::filter(
   scale_fill_manual(values = c("Surgical" = "steelblue", "Non-Surgical" = "darkgray", "Surgery recommended" = "darkred")) +
   scale_color_manual(values = c("Surgical" = "steelblue4", "Non-Surgical" = "dimgray", "Surgery recommended" = "darkred")) +
   labs(
-    y = "IKDC Total Score",
+    y = "WOSI Normalised Score",
     x = "Time Point",
     fill = "Treatment",
     color = "Treatment"
@@ -1137,287 +1114,13 @@ FigureIKDC <- PROMTFI |> dplyr::filter(
   )
 
 
-knitr::knit_print(FigureIKDC)
+knitr::knit_print(FigureWOSI)
 
 ```
 
-Overall, the *TFInstability* cohort mean IKDC score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
-
-```{r}
-#| label: fig-ikdcsym7
-#| fig-cap: "IKDC Symptom Q7 - highest level of activity performed in which episodes of giving way are experienced in Tibiofemoral Instability cohort"
+Overall, the *Glenohumeral Instability* cohort mean WOSI score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
 
 
-FigIKDCSym7 <- ggplot(PROMTFI |> dplyr::filter(
-  !is.na(IKDCSymptomQ7),
-  !is.na(SurgicalTreatment2)
-  ), aes(x = TimePoint, fill = IKDCSymptomQ7)) +
-  geom_bar(position = "fill") +
-  facet_wrap(~ SurgicalTreatment2, nrow = 3) +
-  # Use a color-blind friendly palette (viridis options: "magma", "inferno", "plasma", "viridis", "cividis", "rocket", "mako", "turbo")
-  scale_fill_viridis_d(option = "viridis") +
-  # labs(title = "IKDC Symptom Q7 by Time Point and Surgical Treatment",
-  #      x = "Time Point",
-  #      y = "Proportion",  # Changed from "Count" to "Proportion" since we're using position="fill"
-  #      fill = "Activity Level") +  # Assuming IKDCSymptomQ7 is about activity levels
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "bottom",
-    legend.box = "vertical",  # Stack legend items vertically
-    legend.margin = margin(t = 10, r = 0, b = 0, l = 0),
-    legend.key.size = unit(0.8, "cm"),  # Slightly larger legend keys for better visibility
-    legend.text = element_text(size = 9)  # Adjust text size as needed
-  ) +
-  guides(fill = guide_legend(nrow = 5))  # Force legend to use 5 rows (adjust as needed based on number of categories)
-
-  
-  knitr::knit_print(FigIKDCSym7)
-```
-
-```{r}
-#| label: fig-ikdcsym7prim
-#| fig-cap: "IKDC Symptom Q7 - highest level of activity performed in which episodes of giving way are experienced in Tibiofemoral Instability cohort - primary surgical cases"
-
-
-FigIKDCSym7 <- ggplot(PROMTFI |> dplyr::filter(
-  !is.na(IKDCSymptomQ7),
-  SurgicalTreatment2 == "Surgical",
-  TreatmentType == "Primary"
-  ), aes(x = TimePoint, fill = IKDCSymptomQ7)) +
-  geom_bar(position = "fill") +
-  # facet_wrap(~ SurgicalTreatment2, nrow = 3) +
-  # Use a color-blind friendly palette (viridis options: "magma", "inferno", "plasma", "viridis", "cividis", "rocket", "mako", "turbo")
-  scale_fill_viridis_d(option = "viridis") +
-  # labs(title = "IKDC Symptom Q7 by Time Point and Surgical Treatment",
-  #      x = "Time Point",
-  #      y = "Proportion",  # Changed from "Count" to "Proportion" since we're using position="fill"
-  #      fill = "Activity Level") +  # Assuming IKDCSymptomQ7 is about activity levels
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "bottom",
-    legend.box = "vertical",  # Stack legend items vertically
-    legend.margin = margin(t = 10, r = 0, b = 0, l = 0),
-    legend.key.size = unit(0.8, "cm"),  # Slightly larger legend keys for better visibility
-    legend.text = element_text(size = 9)  # Adjust text size as needed
-  ) +
-  guides(fill = guide_legend(nrow = 5))  # Force legend to use 5 rows (adjust as needed based on number of categories)
-
-  
-  knitr::knit_print(FigIKDCSym7)
-```
-
-```{r}
-#| label: fig-aclris
-#| fig-cap: "ACL return to sport index - short form"
-
-FigureACLRSI <- ACLRSI1 |> ggplot(aes(y = ACLRSISFTotalScore, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
-  stat_halfeye(
-    alpha = 0.5,  # Transparency for overlap visibility
-    position = "identity",  # Overlay the distributions
-    na.rm = TRUE,
-    scale = 0.9  # Slightly scale down to avoid too much overlap
-  ) 
-
-knitr::knit_print(FigureACLRSI)
-
-```
-
-## Reintervention TKA
-
-```{r}
-#| label: tbl-rtka-demographics
-#| tbl-cap: "Summary of demographics in Reintervention Arthroplasty cohort"
-
-TablerTKAdemo <- gtsummary::tbl_summary(
-  Snapshot |> dplyr::filter(
-    RegistryCohortName == "ReinterventionArthroplasty"
-  ) |> dplyr::select(
-    TreatmentType,
-    SurgicalTreatment2,
-    TreatmentStatus,
-    DateInitialExamination,
-    AgeAtInitialExam,
-    Sex,
-    EducationLevel_Preop,
-    DiagnosisCoded
-  ),
-  by = "SurgicalTreatment2",
-  missing = "no",
-  statistic = list(
-    DateInitialExamination ~ "{min} - {max}"
-  )
-)
-
-knitr::knit_print(TablerTKAdemo)
-```
-
-```{r}
-SnapshotrTKA <- Snapshot |> dplyr::filter(
-  RegistryCohortName == "ReinterventionArthroplasty"
-  ) |> rename_with(
-  ~gsub("Atx","At_",.x, fixed = TRUE)
-) |> rename_with(
-  ~gsub("KOOS12_Summary_TotalScore","KOOS12TotalScore",.x, fixed = TRUE)
-) |> rename(
-  EligibleAt_Preop = "EligibleAtPreop"
-)
-```
-
-```{r}
-#| label: fig-csi
-#| fig-cap: "Central sensitisation index - Reintervention TKA"
-
-FigureCSI <- SnapshotrTKA |> dplyr::filter(
-  !is.na(SurgicalTreatment)
-) |> ggplot(aes(y = SurgicalTreatment, x = CSIA_TotalScore_Preop)) +
-  stat_halfeye()
-
-knitr::knit_print(FigureCSI)
-```
-
-```{r}
-PROMrTKA <- SnapshotrTKA |> dplyr::select(
-  TreatmentID,
-  starts_with("KOOS12TotalScore"),
-  starts_with("EligibleAt"),
-  -EligibleAtIntraop
-) |> pivot_longer(
-  cols = !TreatmentID,
-  names_to = c(".value","TimePoint"),
-  names_sep = "_",
-  values_drop_na = TRUE
-) |> mutate(
-  TimePoint = factor(TimePoint, levels = c("Preop","6months","12months","24months"), ordered = TRUE, exclude = NA),
-  across(contains("Score"), ~as.numeric(.))
-) |> dplyr::filter(
-  EligibleAt == "Yes",
-  !is.na(TimePoint)
-) |> left_join(
-  SnapshotrTKA |> dplyr::select(
-    TreatmentID,
-    SurgicalTreatment2
-  ),
-  by = "TreatmentID"
-)
-```
-
-```{r}
-#| label: fig-koos12-rtka
-#| fig-cap: "Summary of KOOSJR by Timepoint"
-
-preop_position <- which(levels(PROMrKA$TimePoint) == "Preop")
-
-FigureKOOS12_overlay <- PROMrTKA |> dplyr::filter(
-  !(is.na(SurgicalTreatment2))
-) |> ggplot(aes(y = KOOS12TotalScore, x = TimePoint, fill = SurgicalTreatment2, color = SurgicalTreatment2)) +
-  stat_halfeye(
-    alpha = 0.5,  # Transparency for overlap visibility
-    position = "identity",  # Overlay the distributions
-    na.rm = TRUE,
-    scale = 0.9  # Slightly scale down to avoid too much overlap
-  ) +
-  # Add the ellipse annotation
-  ggforce::geom_ellipse(aes(x0 = preop_position, 
-                  y0 = 70, 
-                  a = 0.3, 
-                  b = 5, 
-                  angle = 0),
-             color = "red", 
-             size = 1.2,
-             inherit.aes = FALSE) +
-  annotate("text", 
-           x = preop_position + 0.4, 
-           y = 85,
-           label = "High preop scores",
-           color = "red",
-           fontface = "bold",
-           size = 3.5) +
-  # Add appropriate scale colors
-  scale_fill_manual(values = c("Surgical" = "steelblue", "Non-Surgical" = "darkgray", "Surgery recommended" = "darkred")) +
-  scale_color_manual(values = c("Surgical" = "steelblue4", "Non-Surgical" = "dimgray", "Surgery recommended" = "darkred")) +
-  labs(
-    y = "KOOSJR Total Score",
-    x = "Time Point",
-    fill = "Treatment",
-    color = "Treatment"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "top",
-    panel.grid.minor = element_blank()
-  )
-
-knitr::knit_print(FigureKOOS12_overlay)
-```
-
-```{r}
-PROMSat <-  SnapshotrTKA |> dplyr::select(
-  starts_with("Satisfaction"),
-  starts_with("Eligible"),
-  TreatmentID
-)
-
-PROMSat1 <- PROMSat |> dplyr::select(
-  -EligibleAtIntraop
-) |> pivot_longer(
-  cols = !TreatmentID,
-  names_to = c(".value","TimePoint"),
-  names_sep = "_",
-  values_drop_na = TRUE
-) |> mutate(
-  TimePoint = factor(TimePoint, levels = c("6months","12months"), ordered = TRUE, exclude = NA),
-  across(starts_with("Satisfaction"), ~ forcats::fct(
-    .,
-    levels = c(
-    "Very dissatisfied",
-    "Somewhat dissatisfied",
-    "Neutral",
-    "Somewhat satisfied",
-    "Very satisfied"
-  ))
-)
-) |> dplyr::filter(
-  EligibleAt == "Yes",
-  !is.na(TimePoint)
-) |> left_join(
-  Snapshot |> dplyr::select(
-    TreatmentID,
-    SurgicalTreatment2
-  ),
-  by = "TreatmentID"
-)
-```
-
-```{r}
-#| label: fig-symptomsat
-#| fig-cap: "Symptom satisfaction at 12month followup for Reintervention TKA"
-
-FigModemP1 <- ggplot(PROMSat1 |> dplyr::filter(EligibleAt == "Yes", !is.na(SurgicalTreatment2), !is.na(Satisfaction)), 
-                     aes(x = SurgicalTreatment2, fill = Satisfaction)) +
-  geom_bar(position = "fill") +
-  #facet_wrap(~ SurgicalTreatment2, nrow = 2) +
-  labs(#title = "",
-       x = "Time Point",
-       y = "Count",
-       fill = "Outcome") +
-  scale_fill_viridis_d(option = "viridis") +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "bottom",
-    legend.box = "vertical",  # Stack legend items vertically
-    legend.margin = margin(t = 10, r = 0, b = 0, l = 0),
-    legend.key.size = unit(0.8, "cm"),  # Slightly larger legend keys for better visibility
-    legend.text = element_text(size = 9)  # Adjust text size as needed
-  ) +
-  guides(fill = guide_legend(nrow = 2)) 
-
-
-
-knitr::knit_print(FigModemP1)
-```
 
 # Interpretation
 

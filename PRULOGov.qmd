@@ -263,7 +263,7 @@ STROBEInput <- openxlsx2::wb_to_df(
 
 # Recruitment Flow by Region
 
-Flowcharts as per STROBE [@Vandenbroucke2007] and RECORD [@Benchimol2015] guidelines were generated for each region (shoulder, hip, knee) enrolled into the Registry. Followup was set to eligibility at 12months.
+Flowcharts as per STROBE [@Vandenbroucke2007] and RECORD [@Benchimol2015] guidelines were generated for treatments enrolled into the Registry. Followup was set to eligibility at 12months.
 
 ```{r}
 
@@ -370,7 +370,9 @@ Cumulative recruitment over time was plotted from Registry inception to the pres
 
 
 RecordCount <- dplyr::summarise(
-  STROBEFlow3,
+  STROBEFlow3 |>  dplyr::filter(
+    !(TreatmentStatus == "Archived")
+    ),
   Count = n(),
   .by = PatientCreationDate
 ) |> arrange(
@@ -380,6 +382,7 @@ RecordCount <- dplyr::summarise(
   PatientCreationNum = as.numeric(PatientCreationDate)
   ) |> filter(
     !(PatientCreationDate < ymd("20160701"))
+   
   )
 
 cumulative_plot <- ggplot(RecordCount, aes(x = PatientCreationDate, y = CumulativeCount)) +
@@ -648,7 +651,7 @@ PROMGHI1 <- PROMGHI |> left_join(
   !(CreationYear < 2017)
   ) |> dplyr::select(
   CreationYear,
-  WOSITotalScore
+  WOSINorm
 ) 
 
 gg_miss_fct(PROMGHI1, CreationYear) +
@@ -1049,6 +1052,7 @@ knitr::knit_print(TableGHIdemo)
 ```{r}
 #| label: tbl-ghi-intraop
 #| tbl-cap: "Summary of intraoperative variables in Rotator Cuff cohort"
+#| eval: FALSE
 
 TableGHIsurg <- gtsummary::tbl_summary(
   Snapshot |> dplyr::filter(
@@ -1066,6 +1070,19 @@ knitr::knit_print(TableGHIsurg)
 
 
 ```
+
+
+```{r}
+
+GHIIntraop <- Snapshot |> filter(
+  RegistryCohortName == "GlenohumeralInstability",
+  SurgicalTreatment2 == "Surgical"
+)  |> dplyr::select(
+    LabralTear:RepairAugmentation
+)
+
+```
+
 
 ```{r}
 #| label: fig-wosi-ghi

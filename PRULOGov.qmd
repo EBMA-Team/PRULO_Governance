@@ -368,7 +368,7 @@ Cumulative recruitment over time was plotted from Registry inception to the pres
 
 ```{r}
 #| label: fig-progress
-#| fig-cap: "Cumulative record creation within SHARKS from inception to present"
+#| fig-cap: "Cumulative (non-excluded) record creation within PRULO from inception to present"
 
 
 RecordCount <- dplyr::summarise(

@@ -63,6 +63,7 @@ pacman::p_load(# Load required packages
   "ggplot2",
   "ggdist",
   "ggfortify",
+  "ggsurvfit",
   "mice",
   "marginaleffects",
   "naniar",
@@ -1012,7 +1013,65 @@ FigureWORCQ3_overlay <- PROMRC |> dplyr::filter(
 knitr::knit_print(FigureWORCQ3_overlay)
 ```
 
-Assessment of the *Rotator Cuff* cohort reveals that some patients enrolled in the cohort are scoring high on the KOOS JR preoperatively, intraoperative data requires backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. patellar resurfacing, tourniquet use, soft tissue management).
+Assessment of the *Rotator Cuff* cohort reveals that some patients enrolled in the cohort are scoring high on the WORC preoperatively, intraoperative data requires minimal backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. tendon pathology, repair tension, augmentation).
+
+
+
+```{r}
+#| label: survival-prep-rc
+
+SnapshotRC2 <- SnapshotRC |> dplyr::mutate(
+  Status = if_else(
+    TreatmentStatus == "Failed",
+    1,
+    0
+  ),
+  EndDate = case_when(
+    !is.na(DateStatusChange) ~ DateStatusChange,
+    .default = coalesce(DateStatusChange, ymd(CurrentDate)),
+    ),
+  Duration = as.numeric(as.duration(interval(ymd(DateTreatment), ymd(EndDate))),"weeks"),
+)
+
+```
+
+
+```{r}
+#| label: fig-survrc
+#| fig-cap: "Survival curve for Rotator Cuff cases by treatment type"
+
+
+FigureSurvRC <- survfit2(Surv(Duration, Status) ~ SurgicalTreatment2,
+                        data = SnapshotRC2
+                        ) |> ggsurvfit(linewidth = 1) +
+  add_confidence_interval() +
+  add_risktable() +
+  add_quantile(y_value = 0.6, color = "gray50", linewidth = 0.75) +
+  scale_ggsurvfit() +
+  coord_cartesian(ylim = c(0.7, 1))
+
+knitr::knit_print(FigureSurvRC)
+
+```
+
+
+```{r}
+#| label: tbl-survRC
+#| tbl-cap: "Summary of Rotator Cuff Procedure Survival"
+
+TableSurvRC <- tbl_survfit(
+  survfit2(Surv(Duration, Status) ~ SurgicalTreatment2, 
+           data = SnapshotRC2),
+  times = c(1,26,52,104),
+  label_header = "**{time} Weeks**",
+  label = "Procedure Survival",
+  statistic = "{estimate} ({conf.low} - {conf.high})"
+)
+
+knitr::knit_print(TableSurvRC)
+
+```
+
 
 ## Glenohumeral Instability
 
@@ -1129,6 +1188,67 @@ knitr::knit_print(FigureWOSI)
 
 Overall, the *Glenohumeral Instability* cohort mean WOSI score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
 
-# Interpretation
+
+```{r}
+#| label: survival-prep-ghi
+
+SnapshotGHI2 <- SnapshotGHI|> dplyr::mutate(
+  Status = if_else(
+    TreatmentStatus == "Failed",
+    1,
+    0
+  ),
+  EndDate = case_when(
+    !is.na(DateStatusChange) ~ DateStatusChange,
+    .default = coalesce(DateStatusChange, ymd(CurrentDate)),
+    ),
+  Duration = as.numeric(as.duration(interval(ymd(DateTreatment), ymd(EndDate))),"weeks"),
+)
+
+```
+
+
+```{r}
+#| label: fig-survghi
+#| fig-cap: "Survival curve for Glenohumeral Instability cases by treatment type"
+
+
+FigureSurvGHI <- survfit2(Surv(Duration, Status) ~ SurgicalTreatment2,
+                        data = SnapshotGHI2
+                        ) |> ggsurvfit(linewidth = 1) +
+  add_confidence_interval() +
+  add_risktable() +
+  add_quantile(y_value = 0.6, color = "gray50", linewidth = 0.75) +
+  scale_ggsurvfit() +
+  coord_cartesian(ylim = c(0.7, 1))
+
+knitr::knit_print(FigureSurvGHI)
+
+```
+
+
+```{r}
+#| label: tbl-survGHI
+#| tbl-cap: "Summary of Glenohumeral Instability Procedure Survival"
+
+TableSurvGHI <- tbl_survfit(
+  survfit2(Surv(Duration, Status) ~ SurgicalTreatment2, 
+           data = SnapshotGHI2),
+  times = c(1,26,52,104),
+  label_header = "**{time} Weeks**",
+  label = "Procedure Survival",
+  statistic = "{estimate} ({conf.low} - {conf.high})"
+)
+
+knitr::knit_print(TableSurvGHI)
+
+```
+
+# Observations | Interpretation
+
+Very few failures have been detected for GHI procedures and none have been detected at 3 years+ follow up.
+
+Patient compliance is challenging beyond 12months, particularly so for GHI presentations. 
+
 
 # Recommendations

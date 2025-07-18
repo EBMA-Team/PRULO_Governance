@@ -205,7 +205,7 @@ colnames(PatientTable) <- Patient_Col
 
 ```
 
-A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (31-Mar-2025).
+A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (30-Jun-2025).
 
 ```{r}
 
@@ -213,7 +213,7 @@ A static registry snapshot was retrieved and formatted based on the fixed date o
 gs4_auth(token = drive_token())
 
 # To get a snapshot from a specific folder (e.g., "20230415")
-specific_snapshot <- get_specific_snapshot("20250410")
+specific_snapshot <- get_specific_snapshot("20250630")
 
 
 ```
@@ -1015,8 +1015,6 @@ knitr::knit_print(FigureWORCQ3_overlay)
 
 Assessment of the *Rotator Cuff* cohort reveals that some patients enrolled in the cohort are scoring high on the WORC preoperatively, intraoperative data requires minimal backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. tendon pathology, repair tension, augmentation).
 
-
-
 ```{r}
 #| label: survival-prep-rc
 
@@ -1034,7 +1032,6 @@ SnapshotRC2 <- SnapshotRC |> dplyr::mutate(
 )
 
 ```
-
 
 ```{r}
 #| label: fig-survrc
@@ -1054,7 +1051,6 @@ knitr::knit_print(FigureSurvRC)
 
 ```
 
-
 ```{r}
 #| label: tbl-survRC
 #| tbl-cap: "Summary of Rotator Cuff Procedure Survival"
@@ -1071,7 +1067,6 @@ TableSurvRC <- tbl_survfit(
 knitr::knit_print(TableSurvRC)
 
 ```
-
 
 ## Glenohumeral Instability
 
@@ -1188,7 +1183,6 @@ knitr::knit_print(FigureWOSI)
 
 Overall, the *Glenohumeral Instability* cohort mean WOSI score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
 
-
 ```{r}
 #| label: survival-prep-ghi
 
@@ -1206,7 +1200,6 @@ SnapshotGHI2 <- SnapshotGHI|> dplyr::mutate(
 )
 
 ```
-
 
 ```{r}
 #| label: fig-survghi
@@ -1226,7 +1219,6 @@ knitr::knit_print(FigureSurvGHI)
 
 ```
 
-
 ```{r}
 #| label: tbl-survGHI
 #| tbl-cap: "Summary of Glenohumeral Instability Procedure Survival"
@@ -1244,11 +1236,10 @@ knitr::knit_print(TableSurvGHI)
 
 ```
 
-# Observations | Interpretation
+# Observations \| Interpretation
 
 Very few failures have been detected for GHI procedures and none have been detected at 3 years+ follow up.
 
-Patient compliance is challenging beyond 12months, particularly so for GHI presentations. 
-
+Patient compliance is challenging beyond 12months, particularly so for GHI presentations.
 
 # Recommendations

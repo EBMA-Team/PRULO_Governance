@@ -862,6 +862,138 @@ FigModemP3 <- ggplot(PROMMODEM1 |> dplyr::filter(!is.na(MODEMPQ3), SurgicalTreat
 knitr::knit_print(FigModemP3)
 ```
 
+## Diagnosis Tabulation
+
+```{r}
+#| label: tbl-diagnosis
+#| tbl-cap: "Summary of diagnosis labels per cohort, separated by treatment type"
+
+Diagnosis <- Snapshot1 |> 
+  dplyr::group_by(
+    RegistryCohortName,
+    DiagnosisPrimary,
+    SurgicalTreatment
+  ) |> 
+  dplyr::summarise(
+    Count = n(),
+    .groups = "drop"
+  ) |> 
+  tidyr::pivot_wider(
+    names_from = SurgicalTreatment,
+    values_from = Count,
+    values_fill = 0
+  ) |> 
+  dplyr::arrange(
+    desc(`Non-Surgical` + Surgical),  # Sort by total count
+    .by_group = FALSE
+  ) |> 
+  dplyr::group_by(RegistryCohortName) |>
+  dplyr::arrange(
+    desc(`Non-Surgical` + Surgical),
+    .by_group = TRUE
+  ) |> 
+  gt::gt(
+    rowname_col = "DiagnosisPrimary",
+    groupname_col = "RegistryCohortName",
+    row_group_as_column = TRUE
+  )
+
+knitr::knit_print(Diagnosis)
+
+```
+
+The initial tabulation (@tbl-diagnosis), shows the current cohort arrangement with the three cohorts and the primary diagnosis labels arranged in descending order of frequency. There are some modifications that could be undertaken that may better align the diagnoses to cohorts. For example, the T-series codes are generally associated with revision cases, so these could be moved to the *ShoulderGeneral.* Similarly, bicipital tendinitis, calcific tendinitis and "pain in shoulder" could also be moved to ShoulderGeneral from the RotatorCuff cohort. These diagnoses are included in this cohort originally as they can involve surgery that impacts the cuff (e.g. excision) or often present with concomitant cuff pathology.
+
+```{r}
+#| label: tbl-diagnosis2
+#| tbl-cap: "Summary of diagnosis labels per revised cohorts, separated by treatment type"
+
+Snapshot2 <- Snapshot1 |> mutate(
+  RegistryCohortName2 = case_when(
+  DiagnosisPrimary == "T84.6 - Infection and inflammatory reaction due to internal fixation device" ~ "ShoulderGeneral",
+  DiagnosisPrimary == "M75.2 Bicipital tendinitis" ~ "ShoulderGeneral",
+  DiagnosisPrimary == "M25.51 Pain in shoulder" ~ "ShoulderGeneral",
+  DiagnosisPrimary == "M75.3 Calcific tendinitis of shoulder" ~ "ShoulderGeneral",
+  stringr::str_detect(DiagnosisPrimary,"Adhesive") ~ "AdhesiveCapsulitis",
+  stringr::str_detect(DiagnosisPrimary,"arthro") ~ "ShoulderArthritis",
+  stringr::str_detect(str_to_lower(DiagnosisPrimary),"fracture") ~ "Fracture",
+  stringr::str_detect(str_to_lower(DiagnosisPrimary),"acromio") ~ "Acromioclavicular",
+.default = RegistryCohortName
+)
+) 
+
+Diagnosis2 <- Snapshot2 |> dplyr::group_by(
+    RegistryCohortName2,
+    DiagnosisPrimary,
+    SurgicalTreatment
+  ) |> 
+  dplyr::summarise(
+    Count = n(),
+    .groups = "drop"
+  ) |> 
+  tidyr::pivot_wider(
+    names_from = SurgicalTreatment,
+    values_from = Count,
+    values_fill = 0
+  ) |> 
+  dplyr::arrange(
+    desc(`Non-Surgical` + Surgical),  # Sort by total count
+    .by_group = FALSE
+  ) |> 
+  dplyr::group_by(RegistryCohortName2) |>
+  dplyr::arrange(
+    desc(`Non-Surgical` + Surgical),
+    .by_group = TRUE
+  ) |> 
+  gt::gt(
+    rowname_col = "DiagnosisPrimary",
+    groupname_col = "RegistryCohortName2",
+    row_group_as_column = TRUE
+  ) |>
+  gt::summary_rows(
+    groups = everything(),
+    columns = c(`Non-Surgical`, Surgical, "NA"),
+    fns = list(
+      "CohortTotal" = ~sum(.x, na.rm = TRUE)
+    ),
+    fmt = ~ fmt_number(.x, decimals = 0)
+  )
+
+knitr::knit_print(Diagnosis2)
+
+```
+
+The cohort definitions have been modified, as illustrated in @tbl-diagnosis2. The new cohorts have been drawn from the ShoulderGeneral diagnoses (Acromioclavicular, AdhesiveCapsulitis, Fracture), with some refinements to the GlenohumeralInstability and RotatorCuff cohorts.
+
+```{r}
+#| label: tbl-cohort2-demographics
+#| tbl-cap: "Summary of demographics by revised cohorts"
+
+TableCoh2demo <- gtsummary::tbl_summary(
+  Snapshot2 |> dplyr::filter(
+    RegistryCohortName2 != "ShoulderGeneral"
+  ) |> dplyr::select(
+    TreatmentType,
+    SurgicalTreatment2,
+    TreatmentStatus,
+    DateInitialExamination,
+    AgeAtInitialExam,
+    Sex,
+    EducationLevel_Preop,
+    #DiagnosisPrimary,
+    RegistryCohortName2,
+    EQ5D5L_IndexScore_Preop
+  ),
+  by = "RegistryCohortName2",
+  missing = "no",
+  statistic = list(
+    DateInitialExamination ~ "{min} - {max}"
+  )
+)
+
+knitr::knit_print(TableCoh2demo)
+```
+
 ## Rotator Cuff
 
 ```{r}
@@ -1015,8 +1147,6 @@ knitr::knit_print(FigureWORCQ3_overlay)
 
 Assessment of the *Rotator Cuff* cohort reveals that some patients enrolled in the cohort are scoring high on the WORC preoperatively, intraoperative data requires minimal backfilling and that there may be sufficient variation in surgical technique to warrant further investigation (e.g. tendon pathology, repair tension, augmentation).
 
-
-
 ```{r}
 #| label: survival-prep-rc
 
@@ -1034,7 +1164,6 @@ SnapshotRC2 <- SnapshotRC |> dplyr::mutate(
 )
 
 ```
-
 
 ```{r}
 #| label: fig-survrc
@@ -1054,7 +1183,6 @@ knitr::knit_print(FigureSurvRC)
 
 ```
 
-
 ```{r}
 #| label: tbl-survRC
 #| tbl-cap: "Summary of Rotator Cuff Procedure Survival"
@@ -1071,7 +1199,6 @@ TableSurvRC <- tbl_survfit(
 knitr::knit_print(TableSurvRC)
 
 ```
-
 
 ## Glenohumeral Instability
 
@@ -1188,7 +1315,6 @@ knitr::knit_print(FigureWOSI)
 
 Overall, the *Glenohumeral Instability* cohort mean WOSI score does not reach the reported patient acceptable symptom state (\~ 80) on average at up to 2 years followup. Considering the missingness patterns in the data, this could be attributed to patients self-selecting into responding to PROMs.
 
-
 ```{r}
 #| label: survival-prep-ghi
 
@@ -1206,7 +1332,6 @@ SnapshotGHI2 <- SnapshotGHI|> dplyr::mutate(
 )
 
 ```
-
 
 ```{r}
 #| label: fig-survghi
@@ -1226,7 +1351,6 @@ knitr::knit_print(FigureSurvGHI)
 
 ```
 
-
 ```{r}
 #| label: tbl-survGHI
 #| tbl-cap: "Summary of Glenohumeral Instability Procedure Survival"
@@ -1244,11 +1368,10 @@ knitr::knit_print(TableSurvGHI)
 
 ```
 
-# Observations | Interpretation
+# Observations \| Interpretation
 
 Very few failures have been detected for GHI procedures and none have been detected at 3 years+ follow up.
 
-Patient compliance is challenging beyond 12months, particularly so for GHI presentations. 
-
+Patient compliance is challenging beyond 12months, particularly so for GHI presentations.
 
 # Recommendations

@@ -450,7 +450,7 @@ max_percent <- 100  # Or another value that encompasses all your data
 
 ```{r}
 #| label: fig-qdash-miss
-#| fig-cap: "Missingness of SANE by Timepoint across all cohorts"
+#| fig-cap: "Missingness of QuickDASH by Timepoint across all cohorts"
 
 PROMQDASH <- Snapshot |> dplyr::select(
   TreatmentID,

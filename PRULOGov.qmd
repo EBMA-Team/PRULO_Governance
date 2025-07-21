@@ -1204,7 +1204,7 @@ knitr::knit_print(TableSurvRC)
 
 ```{r}
 #| label: tbl-ghi-demographics
-#| tbl-cap: "Summary of demographics in Tibiofemoral Instability cohort"
+#| tbl-cap: "Summary of demographics in Glenohumeral Instability cohort"
 
 TableGHIdemo <- gtsummary::tbl_summary(
   Snapshot |> dplyr::filter(
@@ -1231,7 +1231,7 @@ knitr::knit_print(TableGHIdemo)
 
 ```{r}
 #| label: tbl-ghi-intraop
-#| tbl-cap: "Summary of intraoperative variables in Rotator Cuff cohort"
+#| tbl-cap: "Summary of intraoperative variables in Glenohumeral Instability cohort"
 #| eval: FALSE
 
 TableGHIsurg <- gtsummary::tbl_summary(
@@ -1375,3 +1375,9 @@ Very few failures have been detected for GHI procedures and none have been detec
 Patient compliance is challenging beyond 12months, particularly so for GHI presentations.
 
 # Recommendations
+
+-   Consider modifications to configuration of shoulder cohorts
+
+-   Implement strategies to improve patient engagement at later followup timepoints
+
+-   Identify supplementatl data linkage activities to improve outcomes (complications, mortality, procedure survival) at medium to long-term followup

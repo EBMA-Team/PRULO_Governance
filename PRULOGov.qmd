@@ -36,6 +36,9 @@ Analysis packages were loaded initially into the *R* environment.
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(# Load required packages
+  "openxlsx2",
+  "tinytable",
+  "modelsummary",
   "ggforce",
   "ggdag",
   "ggmap",

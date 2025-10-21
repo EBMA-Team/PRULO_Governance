@@ -7,7 +7,7 @@ type: "website"
 number-sections: true
 number-depth: 3
 date: "2025-Jun-03"
-date-modified: "2025-Oct-01"
+date-modified: "2025-Jul-18"
 
 bibliography: PRULOGov references.bib
 
@@ -36,9 +36,6 @@ Analysis packages were loaded initially into the *R* environment.
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(# Load required packages
-  "openxlsx2",
-  "tinytable",
-  "modelsummary",
   "ggforce",
   "ggdag",
   "ggmap",
@@ -208,7 +205,7 @@ colnames(PatientTable) <- Patient_Col
 
 ```
 
-A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (30-Sep-2025).
+A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (30-Jun-2025).
 
 ```{r}
 
@@ -216,7 +213,7 @@ A static registry snapshot was retrieved and formatted based on the fixed date o
 gs4_auth(token = drive_token())
 
 # To get a snapshot from a specific folder (e.g., "20230415")
-specific_snapshot <- get_specific_snapshot("20250930")
+specific_snapshot <- get_specific_snapshot("20250630")
 
 
 ```

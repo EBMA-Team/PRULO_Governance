@@ -1345,7 +1345,7 @@ FigureSurvGHI <- survfit2(Surv(Duration, Status) ~ SurgicalTreatment2,
   add_risktable() +
   add_quantile(y_value = 0.6, color = "gray50", linewidth = 0.75) +
   scale_ggsurvfit() +
-  coord_cartesian(ylim = c(0.7, 1))
+  coord_cartesian(ylim = c(0.5, 1))
 
 knitr::knit_print(FigureSurvGHI)
 

@@ -6,8 +6,8 @@ version: 3.0
 type: "website"
 number-sections: true
 number-depth: 3
-date: "2025-Jun-03"
-date-modified: "2025-Sep-30"
+date: "2025-Dec-31"
+date-modified: "2026-Jan-05"
 
 bibliography: PRULOGov references.bib
 
@@ -205,7 +205,7 @@ colnames(PatientTable) <- Patient_Col
 
 ```
 
-A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (30-Sep-2025).
+A static registry snapshot was retrieved and formatted based on the fixed date of preparation of the snapshot (31-Dec-2025).
 
 ```{r}
 

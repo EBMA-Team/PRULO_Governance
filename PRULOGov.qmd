@@ -213,7 +213,7 @@ A static registry snapshot was retrieved and formatted based on the fixed date o
 gs4_auth(token = drive_token())
 
 # To get a snapshot from a specific folder (e.g., "20230415")
-specific_snapshot <- get_specific_snapshot("20250930")
+specific_snapshot <- get_specific_snapshot("20251231")
 
 
 ```
@@ -303,7 +303,7 @@ STROBEFlow2 <- STROBEInput |>
 
 ```{r}
 
-CurrentDate <- as.character("20250430")
+CurrentDate <- as.character("20251231") 
 
 STROBEFlow3 <- STROBEFlow2 |> dplyr::mutate(
     exclusion1 = case_when(
